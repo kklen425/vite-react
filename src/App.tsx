@@ -1,7 +1,51 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from "recharts";
+"use client";
 
-const BODY_PARTS = {
+import { useState, useMemo, useEffect, useCallback } from "react";
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar, CartesianGrid,
+} from "recharts";
+
+/* ───────── Types ───────── */
+interface WorkoutRecord {
+  id: number;
+  date: string;
+  bodyPart: string;
+  exercise: string;
+  weight: number;
+  reps: number;
+  sets: number;
+}
+
+interface FormState {
+  date: string;
+  bodyPart: string;
+  exercise: string;
+  weight: string | number;
+  reps: string | number;
+  sets: string | number;
+}
+
+interface StatItem {
+  label: string;
+  value: number | string;
+  unit: string;
+}
+
+interface ProgressPoint {
+  date: string;
+  weight: number;
+  volume: number;
+  reps: number;
+}
+
+interface VolumeItem {
+  name: string;
+  volume: number;
+}
+
+/* ───────── Constants ───────── */
+const BODY_PARTS: Record<string, string[]> = {
   "胸": ["槓鈴臥推", "啞鈴臥推", "上斜臥推", "飛鳥夾胸", "繩索夾胸", "掌上壓"],
   "背": ["引體上升", "槓鈴划船", "啞鈴划船", "滑輪下拉", "坐姿划船", "硬拉"],
   "肩": ["啞鈴肩推", "槓鈴肩推", "側平舉", "前平舉", "反向飛鳥", "聳肩"],
@@ -10,131 +54,204 @@ const BODY_PARTS = {
   "腹": ["捲腹", "懸垂抬腿", "平板支撐", "俄羅斯轉體", "腹肌輪", "側捲腹"],
 };
 
-const BODY_PART_EMOJI = { "胸": "🫁", "背": "🔙", "肩": "💪", "腿": "🦵", "手臂": "💪", "腹": "🎯" };
+const BODY_PART_EMOJI: Record<string, string> = {
+  "胸": "🫁", "背": "🔙", "肩": "💪", "腿": "🦵", "手臂": "💪", "腹": "🎯",
+};
 
 const STORAGE_KEY = "fitness-tracker-records";
 
-const formatDate = (d) => {
+/* ───────── Helpers ───────── */
+const formatDate = (d: string): string => {
   const date = new Date(d);
   return `${date.getMonth() + 1}/${date.getDate()}`;
 };
 
+const loadFromStorage = (): WorkoutRecord[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveToStorage = (records: WorkoutRecord[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  } catch (e) {
+    console.error("Failed to save:", e);
+  }
+};
+
+/* ───────── Styles ───────── */
+const labelStyle: React.CSSProperties = {
+  display: "block", fontSize: 11, fontWeight: 600, color: "#818cf8",
+  letterSpacing: 1, textTransform: "uppercase", marginBottom: 6,
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%", padding: "12px 14px", borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)",
+  color: "#e0e7ff", fontSize: 14, outline: "none", marginBottom: 16,
+  fontFamily: "inherit",
+};
+
+const iconBtnStyle: React.CSSProperties = {
+  width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)",
+  background: "rgba(255,255,255,0.02)", cursor: "pointer", fontSize: 13,
+  display: "flex", alignItems: "center", justifyContent: "center",
+};
+
+const chartCard: React.CSSProperties = {
+  padding: 20, borderRadius: 20, marginBottom: 16,
+  background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)",
+};
+
+/* ───────── Component ───────── */
 export default function FitnessTracker() {
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("log");
-  const [form, setForm] = useState({ date: new Date().toISOString().split("T")[0], bodyPart: "胸", exercise: "槓鈴臥推", weight: "", reps: "", sets: "" });
-  const [editId, setEditId] = useState(null);
-  const [filterPart, setFilterPart] = useState("全部");
-  const [progressExercise, setProgressExercise] = useState("槓鈴臥推");
-  const [toast, setToast] = useState(null);
+  const [records, setRecords] = useState<WorkoutRecord[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<string>("log");
+  const [form, setForm] = useState<FormState>({
+    date: new Date().toISOString().split("T")[0],
+    bodyPart: "胸",
+    exercise: "槓鈴臥推",
+    weight: "",
+    reps: "",
+    sets: "",
+  });
+  const [editId, setEditId] = useState<number | null>(null);
+  const [filterPart, setFilterPart] = useState<string>("全部");
+  const [progressExercise, setProgressExercise] = useState<string>("槓鈴臥推");
+  const [toast, setToast] = useState<string | null>(null);
 
-  // Load records from persistent storage on mount
   useEffect(() => {
-    const loadRecords = async () => {
-      try {
-        const result = await window.storage.get(STORAGE_KEY);
-        if (result && result.value) {
-          const parsed = JSON.parse(result.value);
-          setRecords(parsed);
-          if (parsed.length > 0) {
-            const exercises = [...new Set(parsed.map(r => r.exercise))];
-            if (exercises.length > 0) setProgressExercise(exercises[0]);
-          }
-        }
-      } catch (e) {
-        console.log("No saved data found, starting fresh");
-      }
-      setLoading(false);
-    };
-    loadRecords();
-  }, []);
-
-  // Save records to persistent storage
-  const saveRecords = useCallback(async (newRecords) => {
-    try {
-      await window.storage.set(STORAGE_KEY, JSON.stringify(newRecords));
-    } catch (e) {
-      console.error("Failed to save:", e);
+    const data = loadFromStorage();
+    setRecords(data);
+    if (data.length > 0) {
+      const exercises = [...new Set(data.map((r: WorkoutRecord) => r.exercise))];
+      if (exercises.length > 0) setProgressExercise(exercises[0]);
     }
+    setLoading(false);
   }, []);
 
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2000); };
+  const persist = useCallback((next: WorkoutRecord[]) => {
+    setRecords(next);
+    saveToStorage(next);
+  }, []);
 
-  const handleBodyPartChange = (bp) => {
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2000);
+  };
+
+  const handleBodyPartChange = (bp: string) => {
     setForm({ ...form, bodyPart: bp, exercise: BODY_PARTS[bp][0] });
   };
 
   const handleSubmit = () => {
-    if (!form.weight && form.weight !== 0 || !form.reps || !form.sets) { showToast("⚠️ 請填寫所有欄位"); return; }
-    let newRecords;
+    if ((!form.weight && form.weight !== 0) || !form.reps || !form.sets) {
+      showToast("⚠️ 請填寫所有欄位");
+      return;
+    }
+    const entry: WorkoutRecord = {
+      id: editId ?? Date.now(),
+      date: form.date,
+      bodyPart: form.bodyPart,
+      exercise: form.exercise,
+      weight: Number(form.weight),
+      reps: Number(form.reps),
+      sets: Number(form.sets),
+    };
+
     if (editId) {
-      newRecords = records.map(r => r.id === editId ? { ...r, ...form, weight: Number(form.weight), reps: Number(form.reps), sets: Number(form.sets) } : r);
+      persist(records.map((r: WorkoutRecord) => (r.id === editId ? entry : r)));
       setEditId(null);
       showToast("✅ 已更新記錄");
     } else {
-      newRecords = [...records, { id: Date.now(), ...form, weight: Number(form.weight), reps: Number(form.reps), sets: Number(form.sets) }];
+      persist([...records, entry]);
       showToast("💪 記錄已儲存！");
     }
-    setRecords(newRecords);
-    saveRecords(newRecords);
     setForm({ ...form, weight: "", reps: "", sets: "" });
   };
 
-  const handleEdit = (r) => {
+  const handleEdit = (r: WorkoutRecord) => {
     setForm({ date: r.date, bodyPart: r.bodyPart, exercise: r.exercise, weight: r.weight, reps: r.reps, sets: r.sets });
     setEditId(r.id);
     setActiveTab("log");
   };
 
-  const handleDelete = (id) => {
-    const newRecords = records.filter(r => r.id !== id);
-    setRecords(newRecords);
-    saveRecords(newRecords);
+  const handleDelete = (id: number) => {
+    persist(records.filter((r: WorkoutRecord) => r.id !== id));
     showToast("🗑️ 已刪除");
   };
 
   const handleClearAll = () => {
-    setRecords([]);
-    saveRecords([]);
+    persist([]);
     showToast("🧹 已清除所有記錄");
   };
 
-  const filteredRecords = useMemo(() => {
-    const sorted = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
-    return filterPart === "全部" ? sorted : sorted.filter(r => r.bodyPart === filterPart);
+  const filteredRecords = useMemo<WorkoutRecord[]>(() => {
+    const sorted = [...records].sort(
+      (a: WorkoutRecord, b: WorkoutRecord) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    return filterPart === "全部" ? sorted : sorted.filter((r: WorkoutRecord) => r.bodyPart === filterPart);
   }, [records, filterPart]);
 
-  const groupedByDate = useMemo(() => {
-    const groups = {};
-    filteredRecords.forEach(r => { if (!groups[r.date]) groups[r.date] = []; groups[r.date].push(r); });
+  const groupedByDate = useMemo<Record<string, WorkoutRecord[]>>(() => {
+    const groups: Record<string, WorkoutRecord[]> = {};
+    filteredRecords.forEach((r: WorkoutRecord) => {
+      if (!groups[r.date]) groups[r.date] = [];
+      groups[r.date].push(r);
+    });
     return groups;
   }, [filteredRecords]);
 
-  const progressData = useMemo(() => {
+  const progressData = useMemo<ProgressPoint[]>(() => {
     return records
-      .filter(r => r.exercise === progressExercise)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map(r => ({ date: formatDate(r.date), weight: r.weight, volume: r.weight * r.reps * r.sets, reps: r.reps }));
+      .filter((r: WorkoutRecord) => r.exercise === progressExercise)
+      .sort((a: WorkoutRecord, b: WorkoutRecord) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .map((r: WorkoutRecord) => ({
+        date: formatDate(r.date),
+        weight: r.weight,
+        volume: r.weight * r.reps * r.sets,
+        reps: r.reps,
+      }));
   }, [records, progressExercise]);
 
-  const allExercises = useMemo(() => [...new Set(records.map(r => r.exercise))], [records]);
+  const allExercises = useMemo<string[]>(
+    () => [...new Set(records.map((r: WorkoutRecord) => r.exercise))],
+    [records]
+  );
 
-  const weeklyVolume = useMemo(() => {
-    const vol = {};
-    records.forEach(r => {
-      const key = r.bodyPart;
-      if (!vol[key]) vol[key] = 0;
-      vol[key] += r.weight * r.reps * r.sets;
+  const weeklyVolume = useMemo<VolumeItem[]>(() => {
+    const vol: Record<string, number> = {};
+    records.forEach((r: WorkoutRecord) => {
+      if (!vol[r.bodyPart]) vol[r.bodyPart] = 0;
+      vol[r.bodyPart] += r.weight * r.reps * r.sets;
     });
-    return Object.entries(vol).map(([name, volume]) => ({ name, volume }));
+    return Object.entries(vol).map(([name, volume]: [string, number]) => ({ name, volume }));
   }, [records]);
 
-  const stats = useMemo(() => ({
-    totalSessions: new Set(records.map(r => r.date)).size,
-    totalVolume: records.reduce((s, r) => s + r.weight * r.reps * r.sets, 0),
-    totalSets: records.reduce((s, r) => s + r.sets, 0),
-  }), [records]);
+  const stats = useMemo(() => {
+    const totalVolume = records.reduce((s: number, r: WorkoutRecord) => s + r.weight * r.reps * r.sets, 0);
+    return {
+      totalSessions: new Set(records.map((r: WorkoutRecord) => r.date)).size,
+      totalVolume,
+      totalSets: records.reduce((s: number, r: WorkoutRecord) => s + r.sets, 0),
+    };
+  }, [records]);
+
+  const statItems: StatItem[] = [
+    { label: "訓練日", value: stats.totalSessions, unit: "日" },
+    {
+      label: "總容量",
+      value: stats.totalVolume >= 1000 ? (stats.totalVolume / 1000).toFixed(1) : stats.totalVolume,
+      unit: stats.totalVolume >= 1000 ? "噸" : "kg",
+    },
+    { label: "總組數", value: stats.totalSets, unit: "組" },
+  ];
 
   const tabs = [
     { key: "log", label: "記錄", icon: "✏️" },
@@ -164,8 +281,7 @@ export default function FitnessTracker() {
       background: "linear-gradient(165deg, #0a0a0f 0%, #111127 40%, #0d1117 100%)",
       color: "#e8e8f0",
       fontFamily: "'Noto Sans TC', 'SF Pro Display', -apple-system, sans-serif",
-      position: "relative",
-      overflow: "hidden",
+      position: "relative", overflow: "hidden",
     }}>
       <div style={{ position: "fixed", top: "-30%", right: "-20%", width: "60vw", height: "60vw", background: "radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "fixed", bottom: "-20%", left: "-10%", width: "50vw", height: "50vw", background: "radial-gradient(circle, rgba(236,72,153,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
@@ -175,14 +291,15 @@ export default function FitnessTracker() {
           position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 999,
           background: "rgba(20,20,40,0.95)", border: "1px solid rgba(99,102,241,0.3)",
           padding: "12px 24px", borderRadius: 12, backdropFilter: "blur(20px)",
-          fontSize: 14, fontWeight: 500, color: "#c4b5fd",
-          animation: "slideDown 0.3s ease",
+          fontSize: 14, fontWeight: 500, color: "#c4b5fd", animation: "slideDown 0.3s ease",
         }}>{toast}</div>
       )}
 
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "0 16px 100px", position: "relative", zIndex: 1 }}>
         <div style={{ padding: "32px 0 20px", textAlign: "center" }}>
-          <div style={{ fontSize: 11, letterSpacing: 4, textTransform: "uppercase", color: "#6366f1", fontWeight: 600, marginBottom: 8 }}>Workout Tracker</div>
+          <div style={{ fontSize: 11, letterSpacing: 4, textTransform: "uppercase", color: "#6366f1", fontWeight: 600, marginBottom: 8 }}>
+            Workout Tracker
+          </div>
           <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, background: "linear-gradient(135deg, #e0e7ff, #c4b5fd, #f0abfc)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             健身記錄簿
           </h1>
@@ -190,17 +307,13 @@ export default function FitnessTracker() {
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
             自動儲存開啟中 · 關閉後數據唔會消失
           </div>
+
           <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 16 }}>
-            {[
-              { label: "訓練日", value: stats.totalSessions, unit: "日" },
-              { label: "總容量", value: stats.totalVolume >= 1000 ? (stats.totalVolume / 1000).toFixed(1) : stats.totalVolume, unit: stats.totalVolume >= 1000 ? "噸" : "kg" },
-              { label: "總組數", value: stats.totalSets, unit: "組" },
-            ].map((s, i) => (
-              <div key={i} style={{
-                flex: 1, padding: "14px 8px", borderRadius: 14,
-                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
-              }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: "#e0e7ff" }}>{s.value}<span style={{ fontSize: 11, fontWeight: 400, color: "#818cf8", marginLeft: 2 }}>{s.unit}</span></div>
+            {statItems.map((s: StatItem, i: number) => (
+              <div key={i} style={{ flex: 1, padding: "14px 8px", borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: "#e0e7ff" }}>
+                  {s.value}<span style={{ fontSize: 11, fontWeight: 400, color: "#818cf8", marginLeft: 2 }}>{s.unit}</span>
+                </div>
                 <div style={{ fontSize: 10, color: "#6366f1", letterSpacing: 1, marginTop: 2, textTransform: "uppercase" }}>{s.label}</div>
               </div>
             ))}
@@ -208,7 +321,7 @@ export default function FitnessTracker() {
         </div>
 
         <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 16, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)", marginBottom: 24 }}>
-          {tabs.map(t => (
+          {tabs.map((t) => (
             <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
               flex: 1, padding: "12px 0", borderRadius: 12, border: "none", cursor: "pointer",
               fontSize: 13, fontWeight: 600, transition: "all 0.2s",
@@ -220,23 +333,21 @@ export default function FitnessTracker() {
           ))}
         </div>
 
+        {/* ═══ LOG ═══ */}
         {activeTab === "log" && (
           <div style={{ animation: "fadeIn 0.3s ease" }}>
-            <div style={{
-              padding: 24, borderRadius: 20,
-              background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)",
-            }}>
+            <div style={{ padding: 24, borderRadius: 20, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                 <span style={{ fontSize: 18 }}>{editId ? "✏️" : "🏋️"}</span>
                 <span style={{ fontSize: 16, fontWeight: 700, color: "#e0e7ff" }}>{editId ? "編輯記錄" : "新增記錄"}</span>
               </div>
 
               <label style={labelStyle}>📅 日期</label>
-              <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} style={inputStyle} />
+              <input type="date" value={form.date} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, date: e.target.value })} style={inputStyle} />
 
               <label style={labelStyle}>🎯 訓練部位</label>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 16 }}>
-                {Object.keys(BODY_PARTS).map(bp => (
+                {Object.keys(BODY_PARTS).map((bp: string) => (
                   <button key={bp} onClick={() => handleBodyPartChange(bp)} style={{
                     padding: "10px 0", borderRadius: 10, border: "1px solid",
                     borderColor: form.bodyPart === bp ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.06)",
@@ -250,22 +361,24 @@ export default function FitnessTracker() {
               </div>
 
               <label style={labelStyle}>🏋️ 動作</label>
-              <select value={form.exercise} onChange={e => setForm({ ...form, exercise: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }}>
-                {BODY_PARTS[form.bodyPart].map(ex => <option key={ex} value={ex}>{ex}</option>)}
+              <select value={form.exercise} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setForm({ ...form, exercise: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }}>
+                {BODY_PARTS[form.bodyPart].map((ex: string) => (
+                  <option key={ex} value={ex}>{ex}</option>
+                ))}
               </select>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
                 <div>
                   <label style={labelStyle}>⚖️ 重量(kg)</label>
-                  <input type="number" placeholder="0" value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value })} style={inputStyle} min="0" step="0.5" />
+                  <input type="number" placeholder="0" value={form.weight} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, weight: e.target.value })} style={inputStyle} min="0" step="0.5" />
                 </div>
                 <div>
                   <label style={labelStyle}>🔄 次數</label>
-                  <input type="number" placeholder="0" value={form.reps} onChange={e => setForm({ ...form, reps: e.target.value })} style={inputStyle} min="1" />
+                  <input type="number" placeholder="0" value={form.reps} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, reps: e.target.value })} style={inputStyle} min="1" />
                 </div>
                 <div>
                   <label style={labelStyle}>📦 組數</label>
-                  <input type="number" placeholder="0" value={form.sets} onChange={e => setForm({ ...form, sets: e.target.value })} style={inputStyle} min="1" />
+                  <input type="number" placeholder="0" value={form.sets} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, sets: e.target.value })} style={inputStyle} min="1" />
                 </div>
               </div>
 
@@ -289,10 +402,11 @@ export default function FitnessTracker() {
           </div>
         )}
 
+        {/* ═══ HISTORY ═══ */}
         {activeTab === "history" && (
           <div style={{ animation: "fadeIn 0.3s ease" }}>
             <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-              {["全部", ...Object.keys(BODY_PARTS)].map(bp => (
+              {["全部", ...Object.keys(BODY_PARTS)].map((bp: string) => (
                 <button key={bp} onClick={() => setFilterPart(bp)} style={{
                   padding: "8px 14px", borderRadius: 10, border: "1px solid",
                   borderColor: filterPart === bp ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.06)",
@@ -321,14 +435,14 @@ export default function FitnessTracker() {
               </div>
             )}
 
-            {Object.entries(groupedByDate).map(([date, recs]) => (
+            {Object.entries(groupedByDate).map(([date, recs]: [string, WorkoutRecord[]]) => (
               <div key={date} style={{ marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "0 4px" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8" }}>{date}</div>
                   <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
                   <div style={{ fontSize: 11, color: "#4b5563" }}>{recs.length} 個動作</div>
                 </div>
-                {recs.map(r => (
+                {recs.map((r: WorkoutRecord) => (
                   <div key={r.id} style={{
                     padding: "14px 16px", borderRadius: 14, marginBottom: 6,
                     background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
@@ -359,16 +473,16 @@ export default function FitnessTracker() {
           </div>
         )}
 
+        {/* ═══ PROGRESS ═══ */}
         {activeTab === "progress" && (
           <div style={{ animation: "fadeIn 0.3s ease" }}>
-            <div style={{
-              padding: 20, borderRadius: 20, marginBottom: 16,
-              background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)",
-            }}>
+            <div style={{ padding: 20, borderRadius: 20, marginBottom: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
               <label style={{ ...labelStyle, marginBottom: 8 }}>📊 追蹤動作</label>
               {allExercises.length > 0 ? (
-                <select value={progressExercise} onChange={e => setProgressExercise(e.target.value)} style={{ ...inputStyle, cursor: "pointer", marginBottom: 0 }}>
-                  {allExercises.map(ex => <option key={ex} value={ex}>{ex}</option>)}
+                <select value={progressExercise} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setProgressExercise(e.target.value)} style={{ ...inputStyle, cursor: "pointer", marginBottom: 0 }}>
+                  {allExercises.map((ex: string) => (
+                    <option key={ex} value={ex}>{ex}</option>
+                  ))}
                 </select>
               ) : (
                 <div style={{ color: "#4b5563", fontSize: 13 }}>未有記錄</div>
@@ -382,7 +496,7 @@ export default function FitnessTracker() {
               </div>
             ) : (
               <>
-                <div style={{ ...chartCard }}>
+                <div style={chartCard}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#e0e7ff", marginBottom: 16 }}>⚖️ 重量趨勢 (kg)</div>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={progressData}>
@@ -405,7 +519,7 @@ export default function FitnessTracker() {
                   })()}
                 </div>
 
-                <div style={{ ...chartCard }}>
+                <div style={chartCard}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#e0e7ff", marginBottom: 16 }}>📦 容量趨勢 (kg)</div>
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={progressData}>
@@ -427,7 +541,7 @@ export default function FitnessTracker() {
             )}
 
             {weeklyVolume.length > 0 && (
-              <div style={{ ...chartCard }}>
+              <div style={chartCard}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "#e0e7ff", marginBottom: 16 }}>🎯 各部位總容量</div>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={weeklyVolume} layout="vertical">
@@ -463,26 +577,3 @@ export default function FitnessTracker() {
     </div>
   );
 }
-
-const labelStyle = {
-  display: "block", fontSize: 11, fontWeight: 600, color: "#818cf8",
-  letterSpacing: 1, textTransform: "uppercase", marginBottom: 6,
-};
-
-const inputStyle = {
-  width: "100%", padding: "12px 14px", borderRadius: 12,
-  border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)",
-  color: "#e0e7ff", fontSize: 14, outline: "none", marginBottom: 16,
-  fontFamily: "inherit",
-};
-
-const iconBtnStyle = {
-  width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)",
-  background: "rgba(255,255,255,0.02)", cursor: "pointer", fontSize: 13,
-  display: "flex", alignItems: "center", justifyContent: "center",
-};
-
-const chartCard = {
-  padding: 20, borderRadius: 20, marginBottom: 16,
-  background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)",
-};
