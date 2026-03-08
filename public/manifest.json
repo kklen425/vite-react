@@ -7,9 +7,10 @@
   "theme_color": "#6366f1",
   "icons": [
     {
-      "src": "https://ui-avatars.com/api/?name=Fit+Track&background=111127&color=818cf8&size=512",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
