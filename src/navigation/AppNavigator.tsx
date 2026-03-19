@@ -17,7 +17,6 @@ import { BodyScreen }       from '../screens/BodyScreen';
 import { ExerciseLibraryScreen } from '../screens/ExerciseLibraryScreen';
 import { SettingsScreen }   from '../screens/SettingsScreen';
 import { WorkoutDetailScreen } from '../screens/WorkoutDetailScreen';
-import { BodyScreen }       from '../screens/BodyScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;

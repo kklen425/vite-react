@@ -28,13 +28,7 @@
       "permissions": ["NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "VIBRATE"]
     },
     "plugins": [
-      "expo-notifications",
-      [
-        "expo-sqlite",
-        {
-          "enableFTS": true
-        }
-      ]
+      "expo-notifications"
     ]
   }
 }
