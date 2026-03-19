@@ -1,68 +1,94 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap');
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
+html, body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  padding: 0;
+  background: #0C0C0C;
+  color: #F0F0F0;
+  font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+#root {
+  background: #0C0C0C;
+  min-height: 100dvh;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
+input, select, textarea, button {
   font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+input[type=date]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+}
+
+select option {
+  background: #1A1A1A;
+  color: #F0F0F0;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2A2A2A;
+  border-radius: 2px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-24px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes confetti0  { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(-60px, 300px) rotate(540deg);  opacity:0; } }
+@keyframes confetti1  { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(80px,  320px) rotate(-480deg); opacity:0; } }
+@keyframes confetti2  { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(-40px, 280px) rotate(420deg);  opacity:0; } }
+@keyframes confetti3  { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(100px, 310px) rotate(-360deg); opacity:0; } }
+@keyframes confetti4  { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(-80px, 350px) rotate(600deg);  opacity:0; } }
+@keyframes confetti5  { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(60px,  290px) rotate(-540deg); opacity:0; } }
+@keyframes confetti6  { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(-100px,330px) rotate(480deg);  opacity:0; } }
+@keyframes confetti7  { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(40px,  360px) rotate(-420deg); opacity:0; } }
+@keyframes confetti8  { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(-20px, 300px) rotate(360deg);  opacity:0; } }
+@keyframes confetti9  { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(90px,  340px) rotate(-300deg); opacity:0; } }
+@keyframes confetti10 { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(-70px, 320px) rotate(240deg);  opacity:0; } }
+@keyframes confetti11 { 0% { transform: translate(0,0) rotate(0deg); opacity:1; } 100% { transform: translate(50px,  370px) rotate(-180deg); opacity:0; } }
