@@ -17,6 +17,7 @@ import { BodyScreen }       from '../screens/BodyScreen';
 import { ExerciseLibraryScreen } from '../screens/ExerciseLibraryScreen';
 import { SettingsScreen }   from '../screens/SettingsScreen';
 import { WorkoutDetailScreen } from '../screens/WorkoutDetailScreen';
+import { BodyScreen }       from '../screens/BodyScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -24,6 +25,7 @@ export type RootStackParamList = {
   Main: undefined;
   WorkoutDetail: { workoutId: number };
   Settings: undefined;
+  Body: undefined;
 };
 
 export type TabParamList = {
@@ -102,6 +104,7 @@ export function AppNavigator() {
       <Stack.Screen name="Main"           component={MainTabs}             options={{ headerShown: false }} />
       <Stack.Screen name="WorkoutDetail"  component={WorkoutDetailScreen}  options={{ title: '訓練詳情' }} />
       <Stack.Screen name="Settings"       component={SettingsScreen}       options={{ title: '設定' }} />
+      <Stack.Screen name="Body"           component={BodyScreen}           options={{ title: '身體數據' }} />
     </Stack.Navigator>
   );
 }

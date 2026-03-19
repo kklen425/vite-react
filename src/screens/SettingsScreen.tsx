@@ -197,6 +197,23 @@ export function SettingsScreen({ navigation }: Props) {
         )}
       </View>
 
+      {/* Body metrics */}
+      <Text style={styles.sectionTitle}>資料</Text>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate('Body')}>
+        <View style={[styles.row, { paddingVertical: 0 }]}>
+          <View style={styles.rowLeft}>
+            <Ionicons name="body-outline" size={20} color={theme.colors.primary} />
+            <View>
+              <Text style={styles.rowTitle}>身體數據</Text>
+              <Text style={styles.rowSub}>體重、體脂、腰圍記錄</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+        </View>
+      </TouchableOpacity>
+
       {/* Restore purchases */}
       <TouchableOpacity
         style={styles.restoreBtn}

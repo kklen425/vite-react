@@ -5,10 +5,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import type { CompositeNavigationProp } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList, TabParamList } from '../navigation/AppNavigator';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useSubscription } from '../hooks/useSubscription';
 import {
   getAllBodyMetrics, upsertBodyMetrics, deleteBodyMetrics, getLatestBodyMetrics,
@@ -18,7 +16,7 @@ import { theme } from '../utils/theme';
 import { todayISO, formatDate } from '../utils/formatters';
 import type { BodyMetrics } from '../types';
 
-export function BodyScreen({ navigation }: { navigation: CompositeNavigationProp<BottomTabNavigationProp<TabParamList>, NativeStackNavigationProp<RootStackParamList>> }) {
+export function BodyScreen({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Body'> }) {
   const { isPro } = useSubscription();
 
   if (!isPro) {
