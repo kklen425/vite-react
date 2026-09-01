@@ -1,8 +1,8 @@
 {
   "rewrites": [
-    { "source": "/bus", "destination": "/index.html" },
-    { "source": "/bus/(.*)", "destination": "/index.html" },
-    { "source": "/california-garden-bus", "destination": "/index.html" }
+    { "source": "/bus", "destination": "/bus.html" },
+    { "source": "/bus/(.*)", "destination": "/bus.html" },
+    { "source": "/california-garden-bus", "destination": "/bus.html" }
   ],
   "headers": [
     {

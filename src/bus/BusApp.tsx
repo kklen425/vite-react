@@ -40,7 +40,7 @@ function loadPreferences(): Preferences {
 
 function updateBusDocumentMetadata() {
   document.documentElement.lang = 'zh-HK'
-  document.title = '加州花園居民巴士時間表'
+  document.title = '加州花園居民巴士'
 
   const description = document.querySelector<HTMLMetaElement>('meta[name="description"]')
     ?? document.head.appendChild(document.createElement('meta'))
