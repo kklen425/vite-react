@@ -11,7 +11,19 @@ export default defineConfig({
       includeAssets: ['icon.svg'],
       manifest: false, // use our existing public/manifest.json
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,json,webmanifest}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/california-garden-bus-data\.json$/],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname === '/california-garden-bus-data.json',
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'bus-timetable-data',
+              expiration: { maxEntries: 2, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+        ],
       },
     }),
   ],

@@ -1,0 +1,26 @@
+{
+  "name": "加州花園居民巴士時間表",
+  "short_name": "居民巴士",
+  "description": "加州花園及加州豪園居民巴士元朗線、上水線表定時間",
+  "lang": "zh-HK",
+  "start_url": "/bus",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#edf2f5",
+  "theme_color": "#071f35",
+  "icons": [
+    {
+      "src": "/bus-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/bus-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
